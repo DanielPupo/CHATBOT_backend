@@ -15,29 +15,34 @@ from dotenv import load_dotenv
 from uuid import uuid4
 import os
 
-# Carrega chaves privadas do ambiente
 load_dotenv()
 
-MODELO = "gemini-2.5-flash"
+# Usando o modelo moderno e performático para interações de chat textuais
+MODELO = "gemini-3.1-flash"
 
-# PROMPT DE ALTO PADRÃO: A Alma e Inteligência da Pupo Parfums
 instrucoes = """
-Você é o renomado Haute Parfumeur e Sommelier Olfativo da "Pupo Parfums", uma Maison de alta perfumaria de nicho e luxuosa.
-Sua missão é guiar os clientes a descobrirem suas assinaturas olfativas com recomendações exclusivas e extremamente diretas.
-Aja como um somelier da perfumaria de alto padrão da europa, você é sofisticado, educado e respeitoso, sempre procurando e oferecendo a melhor experiência para os clientes, utilize de algumas, não muitas, palavras mais sofisticadas para demonstrar o seu alto conhecimento e classe!
+Você é o 'Sparky', o assistente virtual inteligente e companheiro da plataforma STEAM+ (Ciência, Tecnologia, Engenharia, Artes, Matemática e +).
+Seu público-alvo é composto por alunos do 6º ao 8º ano do Ensino Fundamental II e seus respectivos professores. 
+Toda a plataforma é gamificada com a temática de LEGO (avatares customizáveis, ganho de XP e conquista de Stickers de blocos).
 
 Diretrizes Críticas de Personalidade e Formato:
-1. Tom Exclusivo e Sucinto: Comporte-se como um embaixador elegante e refinado, porém altamente focado. Fale apenas o necessário para encantar o cliente sem desperdiçar o tempo dele.
-2. Mensagens Curtas e Objetivas: Suas respostas devem ser breves, dinâmicas e de leitura rápida. Evite parágrafos longos ou introduções extensas. As pessoas hoje querem informações diretas e na hora.
-3. Vocabulário Técnico Sem Enrolação: Indique as notas e conceitos essenciais ("projeção", "fixação", "notas de topo/coração/base") de forma pontual e polida. Use metáforas ricas com ingredientes nobres (ex: Oud cambojano, Rosa de Grasse), mas seja rápido na explicação.
-4. Perfumes Reais e Sugestões Próximas: Indique SEMPRE perfumes reais existentes no mercado que se encaixem perfeitamente no clima (frio/calor), ambiente (reunião/balada) ou humor solicitado. Se não houver um idêntico, recomende fragrâncias de alta qualidade que sejam muito próximas e agradáveis para garantir a total satisfação.
+1. Tom de Voz Adaptativo:
+   - Se o usuário se identificar ou agir como ALUNO: Seja extremamente animado, motivador, use emojis de robôs/blocos (🤖, 🧱, 🚀) e linguagem amigável. Explique conceitos de robótica, circuitos ou lógica de programação de forma simples usando metáforas com peças de encaixe e Lego. Incentive o trabalho em equipe.
+   - Se o usuário se identificar ou agir como PROFESSOR: Seja um parceiro de produtividade focado, profissional, polido e solícito. Ajude-o a otimizar a gestão de tempo, organização de equipes e metodologias ativas.
 
-Use a formatação markdown (negritos inteligentes) apenas para destacar os nomes dos perfumes e as notas principais, facilitando o escaneamento visual da mensagem.
+2. Respostas Objetivas e Escaneáveis:
+   - Evite blocos massivos de texto. Use listas com marcadores e termos em negrito para facilitar a leitura rápida de alunos hiperconectados e professores ocupados.
+
+3. Perguntas Frequentes da Base de Conhecimento:
+   - ALUNOS perguntam sobre: Como ganhar XP e Stickers (fazendo tarefas e aguardando o professor avaliar/marcar como entregue); Como usar o XP (na lojinha de avatares para comprar acessórios LEGO); Ajuda com lógica de blocos (Scratch), montagem de protótipos ou circuitos elétricos em série/paralelo.
+   - PROFESSORES perguntam sobre: Como criar e gerenciar grupos; Como aplicar autoavaliações e provas na plataforma; Como liberar os XPs e stickers (lembre-o de que o sistema distribui as recompensas automaticamente assim que ele atribui a nota e clica em "Marcar como Entregue").
+
+Se o contexto inicial não deixar claro se o usuário é aluno ou professor, faça uma saudação amigável e pergunte educadamente quem está operando o painel para ajustar sua abordagem.
 """
 
 client = genai.Client(api_key=os.getenv("GENAI_KEY"))
 app = Flask(__name__)
-app.secret_key = "pupo_parfums_haute_couture_key"
+app.secret_key = "steam_plus_lego_secret_super_key"
 socketio = SocketIO(app, cors_allowed_origins="*")
 active_chats = {}
 
@@ -47,7 +52,7 @@ def get_user_chat():
 
     session_id = session['session_id']
 
-    if session_id not in active_chats:
+    if session_id not in active_chats or active_chats[session_id] is None:
         try:
             chat_session = client.chats.create(
                 model=MODELO,
@@ -55,28 +60,17 @@ def get_user_chat():
             )
             active_chats[session_id] = chat_session
         except Exception as e:
-            app.logger.error(f"Erro ao criar chat Gemini para {session_id}: {e}", exc_info=True)
+            app.logger.error(f"Erro ao inicializar Sparky para {session_id}: {e}", exc_info=True)
             raise  
-    
-    if session_id in active_chats and active_chats[session_id] is None:
-        try:
-            chat_session = client.chats.create(
-                model=MODELO,
-                config=types.GenerateContentConfig(system_instruction=instrucoes)
-            )
-            active_chats[session_id] = chat_session
-        except Exception as e:
-            app.logger.error(f"Erro ao recriar chat Gemini para {session_id}: {e}", exc_info=True)
-            raise
 
     return active_chats[session_id]
 
 @app.route('/')
 def root():
     return jsonify({
-        "maison": "Pupo Parfums",
-        "status": "Atelier Operacional",
-        "segmento": "Alta Perfumaria de Nicho"
+        "plataforma": "STEAM+",
+        "modulo": "Assistente de Aprendizagem & Gestão",
+        "avatar_tema": "LEGO Custom Build"
     })
 
 @socketio.on('connect')
@@ -84,22 +78,22 @@ def handle_connect():
     try:
         get_user_chat()
         user_session_id = session.get('session_id', 'N/A')
-        emit('status_conexao', {'data': 'Conectado à Maison Pupo Parfums.', 'session_id': user_session_id})
+        emit('status_conexao', {'data': 'Sparky inicializado com sucesso!', 'session_id': user_session_id})
     except Exception as e:
-        app.logger.error(f"Erro no connect: {e}", exc_info=True)
-        emit('erro', {'erro': 'O Atelier está temporariamente fechado para manutenção das essências.'})
+        app.logger.error(f"Erro ao conectar com Sparky: {e}", exc_info=True)
+        emit('erro', {'erro': 'O Sparky está reiniciando seus blocos de memória. Tente em instantes.'})
 
 @socketio.on('enviar_mensagem')
 def handle_enviar_mensagem(data):
     try:
         mensagem_usuario = data.get("mensagem")
         if not mensagem_usuario:
-            emit('erro', {"erro": "A mensagem não pode ser vazia."})
+            emit('erro', {"erro": "Você não pode enviar um comando vazio."})
             return
 
         user_chat = get_user_chat()
         if user_chat is None:
-            emit('erro', {"erro": "Sessão perdida com o atelier olfativo."})
+            emit('erro', {"erro": "Conexão perdida com a central STEAM+."})
             return
 
         resposta_gemini = user_chat.send_message(mensagem_usuario)
@@ -112,8 +106,8 @@ def handle_enviar_mensagem(data):
         emit('nova_mensagem', {"remetente": "bot", "texto": resposta_texto, "session_id": session.get('session_id')})
 
     except Exception as e:
-        app.logger.error(f"Erro ao processar mensagem: {e}", exc_info=True)
-        emit('erro', {"erro": "Houve uma interrupção na extração das notas. Por favor, tente enviar novamente."})
+        app.logger.error(f"Erro de processamento na mensagem: {e}", exc_info=True)
+        emit('erro', {"erro": "Ocorreu uma falha ao conectar com o motor de IA. Tente reenviar."})
 
 @socketio.on('disconnect')
 def handle_disconnect():
